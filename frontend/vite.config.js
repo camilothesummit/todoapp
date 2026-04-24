@@ -1,0 +1,9 @@
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+  build: {
+    outDir: '../static',
+    emptyOutDir: true,
+    manifest: true,
+  }
+})

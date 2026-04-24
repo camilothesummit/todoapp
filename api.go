@@ -1,0 +1,514 @@
+package main
+
+import (
+	"database/sql"
+	"fmt"
+	"html/template"
+	"log"
+	"net/http"
+	"strings"
+	"time"
+
+	_ "github.com/go-sql-driver/mysql"
+)
+
+var db *sql.DB
+var tmpl *template.Template
+
+func main() {
+	var err error
+
+	dsn := "root:admin@tcp(127.0.0.1:3306)/todo?parseTime=true"
+
+	db, err = sql.Open("mysql", dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = db.Ping()
+	if err != nil {
+		log.Fatal("No se pudo conectar a la base de datos:", err)
+	}
+
+	fmt.Println("✅ Conectado a MySQL")
+
+	tmpl, err = template.ParseGlob("./static/*.html")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	http.HandleFunc("/", homeHandler)
+
+	http.HandleFunc("/gym", gymHandler)
+
+	http.HandleFunc("/pink", pinkHandler)
+
+	http.HandleFunc("/add_todo", addTodo)
+
+	http.HandleFunc("/get_todos", getTodos)
+
+	http.HandleFunc("/toggle_done", toggleDone)
+
+	http.HandleFunc("/get_stats", getStats)
+
+	http.HandleFunc("/get_categories", getCategories)
+
+	http.HandleFunc("/get_category_incomplete_count", getCategoryIncompleteCount)
+
+	fs := http.FileServer(http.Dir("./static")) 
+  http.Handle("/static/", http.StripPrefix("/static/", fs))
+
+	fmt.Println("Servidor en http://localhost:8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func homeHandler(w http.ResponseWriter, r *http.Request) {
+	data := struct {
+		Title               string
+		SidebarTaskCardClass string
+		ExtraFields         []template.HTML
+		CategoryOptions     []string
+	}{
+		Title:               "HTMX Todo App",
+		SidebarTaskCardClass: "task-card",
+		ExtraFields: []template.HTML{
+			template.HTML(`<input type="hidden" name="type" value="default">`),
+		},
+		CategoryOptions: []string{
+			"General",
+			"House",
+			"Car",
+			"Shopping",
+		},
+	}
+
+	var buf strings.Builder
+
+	err := tmpl.ExecuteTemplate(&buf, "index.html", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write([]byte(buf.String()))
+}
+
+func gymHandler(w http.ResponseWriter, r *http.Request) {
+	data := struct {
+		Title string
+		SidebarTaskCardClass string
+		ExtraFields []template.HTML
+		CategoryOptions []string
+	}{
+		Title: "Gym",
+		SidebarTaskCardClass: "task-card",
+		ExtraFields: []template.HTML{
+			`<div class="form-row">
+				<mui-text variant="filled" width="60%" name="number_of_sets" label="Add a number of sets"></mui-text>
+			</div>`,
+			`<div class="form-row">
+				<mui-text-lit variant="outlined" width="60%" name="number_of_sets" label="Add a number of sets"></mui-text-lit>
+			</div>`,
+			`<input type="hidden" name="type" value="gym">`,
+		},
+		CategoryOptions: []string{
+			"Legs",
+			"Arms",
+			"Back",
+			"Chest",
+			"Shoulders",
+			"Biceps",
+			"Triceps",
+			"Abs",
+		},
+	}
+
+	err := tmpl.ExecuteTemplate(w, "index.html", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func pinkHandler(w http.ResponseWriter, r *http.Request) {
+	data := struct {
+		Title string
+		SidebarTaskCardClass string
+		ExtraFields []template.HTML
+		CategoryOptions []string
+	}{
+		Title: "Pink",
+		SidebarTaskCardClass: "pink-card",
+		ExtraFields: []template.HTML{
+			`<div class="form-row">
+				<input type="date" name="pink_date" />
+			</div>`,
+			`<input type="hidden" name="type" value="pink">`,
+		},
+		CategoryOptions: []string{
+			"Home",
+			"Shopping",
+			"Homework",
+			"Work",
+			"Personal",
+		},
+	}
+	err := tmpl.ExecuteTemplate(w, "index.html", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func addTodo(w http.ResponseWriter, r *http.Request) {
+	todo := r.FormValue("todo")
+	category := r.FormValue("category")
+	todoType := r.FormValue("type")
+	numberOfSets := r.FormValue("number_of_sets")
+	pinkDate := r.FormValue("pink_date")
+
+	w.Header().Set("Content-Type", "text/html")
+
+	if todo == "" || category == "" {
+		html := `
+		<div id="message" class="warning" hx-swap-oob="true">
+			<div>Please fill in all fields</div>
+		</div>
+		`
+		w.Write([]byte(html))
+		return
+	}
+
+	var result sql.Result
+	var err error
+
+	switch todoType {
+
+		case "gym":
+			result, err = db.Exec(
+				"INSERT INTO gym_todos (todo, category, number_of_sets) VALUES (?, ?, ?)",
+				todo,
+				category,
+				numberOfSets,
+			)
+
+		case "pink":
+			result, err = db.Exec(
+				"INSERT INTO pink_todos (todo, category, deadline_date) VALUES (?, ?, ?)",
+				todo,
+				category,
+				pinkDate,
+			)
+
+		default:
+			result, err = db.Exec(
+				"INSERT INTO todos (todo, category) VALUES (?, ?)",
+				todo,
+				category,
+			)
+	}
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	id, _ := result.LastInsertId()
+
+	var extraInfo string
+
+	switch todoType {
+	case "gym":
+		if numberOfSets != "" {
+			extraInfo = fmt.Sprintf("<small>Sets: %s</small>", numberOfSets)
+		}
+	case "pink":
+		if pinkDate != "" {
+			extraInfo = fmt.Sprintf("<small>Deadline: %s</small>", pinkDate)
+		}
+	default:
+		extraInfo = ""
+	}
+
+	html := fmt.Sprintf(`
+	<div class="todo-item undone">
+		<span>%s</span>
+		%s
+		<button 
+			hx-post="/toggle_done" 
+			hx-vals='{"id": "%d"}' 
+			hx-target="closest .todo-item"
+			hx-swap="outerHTML"
+			class="done-btn">
+			Done
+		</button>
+	</div>
+	`, todo, extraInfo, id)
+
+	w.Header().Set("HX-Trigger", "stats_changed")
+	w.Write([]byte(html))
+
+	succesMessageHtml := `
+	<div id="message" class="success" hx-swap-oob="true">
+		<div>Todo added successfully!</div>
+	</div>
+	`
+
+	w.Write([]byte(succesMessageHtml))
+}
+
+func getTodos(w http.ResponseWriter, r *http.Request) {
+	todoType := r.FormValue("type")
+	table := getTableByType(todoType)
+
+	category := r.FormValue("category")
+
+	var rows *sql.Rows
+	var err error
+
+	var query string
+
+	switch todoType {
+		case "gym":
+			query = fmt.Sprintf("SELECT id, todo, category, done, number_of_sets FROM %s", table)
+		case "pink":
+			query = fmt.Sprintf("SELECT id, todo, category, done, deadline_date FROM %s", table)
+		default:
+			query = fmt.Sprintf("SELECT id, todo, category, done FROM %s", table)
+	}
+
+	if category != "" {
+		query += " WHERE category = ?"
+		rows, err = db.Query(query, category)
+	} else {
+		rows, err = db.Query(query)
+	}
+
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	defer rows.Close()
+
+	var html string
+	for rows.Next() {
+
+	var id int
+	var todo string
+	var category string
+	var done int
+	var extraInfo string
+
+	switch todoType {
+
+	case "gym":
+		var numberOfSets string
+
+		err = rows.Scan(&id, &todo, &category, &done, &numberOfSets)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		extraInfo = fmt.Sprintf("<small>Sets: %s</small>", numberOfSets)
+
+	case "pink":
+		var deadlineDate string
+
+		err = rows.Scan(&id, &todo, &category, &done, &deadlineDate)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		t, _ := time.Parse(time.RFC3339, deadlineDate)
+		formattedDate := t.Format("02/01/2006")
+
+		extraInfo = fmt.Sprintf("<small>Deadline: %s</small>", formattedDate)
+
+	default:
+		err = rows.Scan(&id, &todo, &category, &done)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		extraInfo = ""
+	}
+
+	var doneStr string
+	var buttonText string
+
+	if done == 1 {
+		doneStr = "done"
+		buttonText = "Undone"
+	} else {
+		doneStr = "undone"
+		buttonText = "Done"
+	}
+
+	html += fmt.Sprintf(`
+	<div class="todo-item %s">
+		<div>
+			<span>%s</span>
+			%s
+		</div>
+		<button 
+			hx-post="/toggle_done" 
+			hx-vals='{"id": "%d"}' 
+			hx-target="closest .todo-item"
+			hx-swap="outerHTML"
+			class="done-btn">
+			%s
+		</button>
+	</div>
+	`, doneStr, todo, extraInfo, id, buttonText)
+}
+	w.Header().Set("Content-Type", "text/html")
+	w.Write([]byte(html))
+}
+
+func toggleDone(w http.ResponseWriter, r *http.Request) {
+
+	id := r.FormValue("id")
+
+	todoType := r.FormValue("type")
+	table := getTableByType(todoType)
+
+	_, err := db.Exec(
+		fmt.Sprintf("UPDATE %s SET done = NOT done WHERE id = ?", table),
+		id,
+	)
+
+	var todo string
+	var done int
+
+	err = db.QueryRow(
+		fmt.Sprintf("SELECT todo, done FROM %s WHERE id = ?", table),
+		id,
+	).Scan(&todo, &done)
+
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	var doneStr string
+	var buttonText string
+
+	if done == 1 {
+		doneStr = "done"
+		buttonText = "Undo"
+	} else {
+		doneStr = "undone"
+		buttonText = "Done"
+	}
+
+	html := fmt.Sprintf(`
+	<div class="todo-item %s">
+		<span>%s</span>
+		<button 
+			hx-post="/toggle_done"
+			hx-vals='{"id":"%s"}'
+			hx-target="closest .todo-item"
+			hx-swap="outerHTML"
+			hx-include="#todoForm"
+			class="done-btn">
+			%s
+		</button>
+	</div>
+	`, doneStr, todo, id, buttonText)
+
+	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("HX-Trigger", "stats_changed")
+	w.Write([]byte(html))
+}
+
+func getStats(w http.ResponseWriter, r *http.Request) {
+	var completed int
+	var total int
+
+	todoType := r.FormValue("type")
+	table := getTableByType(todoType)
+
+	db.QueryRow(
+		fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE done = 1", table),
+	).Scan(&completed)
+
+	db.QueryRow(
+		fmt.Sprintf("SELECT COUNT(*) FROM %s", table),
+	).Scan(&total)
+
+	fmt.Fprintf(w, "%d / %d", completed, total)
+}
+
+func getCategories(w http.ResponseWriter, r *http.Request) {
+	todoType := r.FormValue("type")
+	table := getTableByType(todoType)
+
+	rows, err := db.Query(
+		fmt.Sprintf("SELECT DISTINCT category FROM %s", table),
+	)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	defer rows.Close()
+
+	var html strings.Builder
+	for rows.Next() {
+		var category string
+		err = rows.Scan(&category)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+		html .WriteString(fmt.Sprintf(`
+		<a 
+			hx-get="/get_todos" 
+			hx-vals='{"category": "%s"}'
+			hx-target="#todo-list"
+		>
+			<div class="category">
+				<span>%s</span>
+				<span 
+				class="category-badge" 
+				hx-get="/get_category_incomplete_count" 
+				hx-vals='{"category": "%s"}'
+				hx-trigger="load, stats_changed from:body"
+				hx-target="this"
+				hx-include="#todoForm"
+				>
+				</span>
+			</div>
+		</a>
+		`, category, category, category))
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.Write([]byte(html.String()))
+}
+
+func getCategoryIncompleteCount(w http.ResponseWriter, r *http.Request) {
+	category := r.FormValue("category")
+	todoType := r.FormValue("type")
+	table := getTableByType(todoType)
+
+	var count int
+	err := db.QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE done = 0 AND category = ?", table), category).Scan(&count)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	fmt.Fprintf(w, "%d", count)
+}
+
+func getTableByType(todoType string) string {
+	switch todoType {
+	case "gym":
+		return "gym_todos"
+	case "pink":
+		return "pink_todos"
+	default:
+		return "todos"
+	}
+}
