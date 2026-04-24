@@ -1,0 +1,350 @@
+package todo
+
+import "strconv"
+
+templ Index(data TodoModel) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8" />
+			<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+			<title>HTMX Todo App</title>
+			<style>
+				* {
+					box-sizing: border-box;
+					font-family: Arial, Helvetica, sans-serif;
+				}
+
+				body {
+					margin: 0;
+					background: #f5f6f8;
+				}
+
+				h1 {
+					text-align: center;
+					margin: 30px 0;
+				}
+
+				.container {
+					display: flex;
+					max-width: 1200px;
+					margin: 0 auto;
+					gap: 30px;
+					padding: 20px;
+				}
+
+				/* Sidebar */
+				.sidebar {
+					width: 280px;
+				}
+
+				.task-card,
+				.pink-card {
+					background: #184fa3;
+					color: white;
+					border-radius: 12px;
+					padding: 20px;
+					text-align: center;
+					margin-bottom: 20px;
+				}
+
+				.pink-card {
+					background: #a60548;
+				}
+
+				.task-card h2 {
+					margin: 0;
+					font-size: 22px;
+				}
+
+				.task-card span {
+					font-size: 18px;
+					opacity: 0.9;
+				}
+
+				.category {
+					background: #e5e5e5;
+					padding: 12px 16px;
+					border-radius: 10px;
+					display: flex;
+					justify-content: space-between;
+					align-items: center;
+					margin-bottom: 12px;
+					cursor: pointer;
+				}
+
+				.category-badge {
+					background: orange;
+					color: white;
+					padding: 4px 10px;
+					border-radius: 20px;
+					font-size: 14px;
+				}
+
+				.content {
+					flex: 1;
+				}
+
+				.form-row {
+					margin-bottom: 15px;
+				}
+
+				.form-row button {
+					background: green;
+					color: white;
+					border: none;
+					padding: 10px 16px;
+					border-radius: 20px;
+					cursor: pointer;
+				}
+
+				.select-row {
+					margin-bottom: 20px;
+				}
+
+				.select-row select {
+					width: 100%;
+					padding: 10px;
+					border-radius: 6px;
+					border: 1px solid #ccc;
+				}
+
+				.todo-item {
+					background: #dbe3ef;
+					padding: 18px;
+					border-radius: 12px;
+					margin-bottom: 15px;
+					display: flex;
+					justify-content: space-between;
+					align-items: center;
+				}
+
+				.done {
+					opacity: 0.6;
+				}
+
+				.done-btn {
+					background: green;
+					color: white;
+					border: none;
+					padding: 8px 16px;
+					border-radius: 20px;
+					cursor: pointer;
+				}
+
+				.warning,
+				.success {
+					background: red;
+					color: white;
+					padding: 8px;
+					font-size: 0.8em;
+					margin-bottom: 5px;
+					position: fixed;
+					top: 0;
+					left: 0;
+					width: 100%;
+					box-sizing: border-box;
+					transform: translateY(-100%);
+					animation-name: message;
+					animation-duration: 5s;
+					text-align: center;
+				}
+
+				.success {
+					background: green;
+				}
+
+				#todoForm input[type="text"] {
+					width: 100%;
+					padding: 12px 16px;
+					border: 1px solid #d0d7de;
+					border-radius: 10px;
+					font-size: 16px;
+					outline: none;
+					background: white;
+					margin-bottom: 15px;
+					transition: all 0.2s ease;
+				}
+
+				#todoForm input[type="text"]:focus {
+					border-color: #184fa3;
+					box-shadow: 0 0 0 3px rgba(24, 79, 163, 0.2);
+				}
+
+				#todoForm input[type="text"]::placeholder {
+					color: #999;
+				}
+
+				#todoForm button {
+					background: #184fa3;
+					color: white;
+					border: none;
+					padding: 12px 20px;
+					border-radius: 10px;
+					cursor: pointer;
+					font-size: 16px;
+					font-weight: bold;
+					transition: background 0.2s ease;
+				}
+
+				#todoForm button:hover {
+					background: #123d80;
+				}
+
+				@keyframes message {
+					0% {
+						transform: translateY(-100%);
+					}
+					10% {
+						transform: translateY(0%);
+					}
+					90% {
+						transform: translateY(0%);
+					}
+					100% {
+						transform: translateY(-100%);
+					}
+				}
+			</style>
+
+		</head>
+		<body >
+			<div id="message"></div>
+			<h1>Todo App</h1>
+
+			<div class="container">
+				<div class="sidebar">
+					<div class="task-card">
+						<h2>Tasks</h2>
+						<span
+						></span>
+					</div>
+
+					<div
+					>
+						for _, category := range data.CategoryOptions {
+							<a 
+								
+							>
+								<div class="category">
+									<span>{ category }</span>
+									<span 
+									class="category-badge" 
+									
+									>
+									</span>
+								</div>
+							</a>
+						}
+					</div>
+				</div>
+
+				<div class="content">
+					<form
+						id="todoForm"
+						method="post"
+						action="add_todo"
+					>
+					<input name="todo" type="text" placeholder="Type a task" />
+            <button>Add todo</button>
+
+						<div class="select-row">
+							<select name="category">
+								<option value="">--- Select a category ---</option>
+								for _, category := range data.CategoryOptions {
+									<option value={ category }>{ category }</option>
+								}
+							</select>
+						</div>
+
+						// <div class="extra-fields">
+						// 	for _, field := range data.CategoryOptions {
+						// 		@templ.Raw(string(field))
+						// 	}
+						// </div>
+					</form>
+
+					<div id="todo-list">
+							for _, todo := range data.Todos {
+									@TodoItem(todo, data.CategoryOptions)
+							}
+					</div>
+				</div>
+			</div>
+		</body>
+
+	</html>
+}
+
+templ TodoItem(todo Todo, categories []string) {
+    {{ idStr := strconv.Itoa(todo.ID) }}
+    
+    <div class="todo-item" id={ "todo-container-" + idStr }>
+        
+        <div id={ "view-" + idStr } style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+            <div>
+                <span style="font-weight: bold;">{ todo.Todo }</span>
+                <span style="color: #184fa3; font-size: 0.85em; margin-left: 10px; background: #fff; padding: 2px 8px; border-radius: 10px;">
+                    { todo.Category }
+                </span>
+            </div>
+            <div>
+                <button 
+                    type="button" 
+                    class="done-btn" 
+                    style="background: #f39c12; margin-right: 5px;" 
+                    onclick={ toggleEdit(idStr, true) }>
+                    Editar
+                </button>
+                <button class="done-btn">Done</button>
+            </div>
+        </div>
+
+        <form 
+            id={ "edit-form-" + idStr } 
+            style="display: none; width: 100%; gap: 10px; align-items: center;" 
+            method="POST" 
+            action="update_todo"
+        >
+            <input type="hidden" name="id" value={ idStr } />
+            
+            <input 
+                type="text" 
+                name="todo" 
+                value={ todo.Todo } 
+                style="flex: 2; padding: 8px; border-radius: 5px; border: 1px solid #ccc;" 
+            />
+            
+            <select name="category" style="flex: 1; padding: 8px; border-radius: 5px;">
+                for _, cat := range categories {
+                    if cat == todo.Category {
+                        <option value={ cat } selected>{ cat }</option>
+                    } else {
+                        <option value={ cat }>{ cat }</option>
+                    }
+                }
+            </select>
+
+            <button class="done-btn" style="background: #27ae60;">Guardar</button>
+            <button 
+                class="done-btn" 
+                style="background: #e74c3c;" 
+                onclick={ toggleEdit(idStr, false) }>
+                Cancelar
+            </button>
+        </form>
+    </div>
+}
+
+script toggleEdit(id string, show bool) {
+    const viewDiv = document.getElementById('view-' + id);
+    const editForm = document.getElementById('edit-form-' + id);
+    
+    if (show) {
+        viewDiv.style.display = 'none';
+        editForm.style.display = 'flex';
+    } else {
+        viewDiv.style.display = 'flex';
+        editForm.style.display = 'none';
+    }
+}

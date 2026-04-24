@@ -6,8 +6,6 @@
     <title>HTMX Todo App</title>
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"></script>
     <script src="https://unpkg.com/htmx-ext-event-header@2.0.0/event-header.js"></script>
-    <script src="/static/assets/date-picker.js"></script>
-    <script src="/static/assets/index-CUzFA9AE.js" defer></script>
 
     <style>
       * {
@@ -170,6 +168,7 @@
         }
       }
     </style>
+    <script type="module" crossorigin src="/assets/index-ySOCmPiN.js"></script>
   </head>
   <body hx-ext="event-header">
     <div id="message"></div>
@@ -202,45 +201,6 @@
           hx-target="#todo-list"
           hx-swap="none"
         >
-          <div class="form-row" id="date-picker-container">
-            <date-picker timezone="America/Bogota"></date-picker>
-
-            <date-picker
-              placeholder="Select a date"
-              months="January,February,March,April,May,June,July,August,September,October,November,December"
-              days-short="Mo,Tu,We,Th,Fr,Sa,Su"
-              days-long="Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday"
-              primary-color="#029E0F"
-              secondary-color="#006B00"
-              border
-              border-radius="16px"
-              timezone="America/New_York"
-            ></date-picker>
-
-            <date-picker
-              placeholder="Selecione uma data"
-              months="Janeiro,Fevereiro,Março,Abril,Maio,Junho,Julho,Agosto,Setembro,Outubro,Novembro,Dezembro"
-              days-short="Se,Te,Qu,Qu,Se,Sá,Do"
-              days-long="segunda,terça,quarta,quinta,sexta,sábado,domingo"
-              primary-color="#FF5722"
-              secondary-color="#FF5722"
-              border
-              border-radius="20"
-              timezone="Europe/Lisbon"
-            ></date-picker>
-
-            <date-picker
-              placeholder="Оберіть дату"
-              months="Січень,Лютий,Березень,Квітень,Травень,Червень,Липень,Серпень,Вересень,Жовтень,Листопад,Грудень"
-              days-short="Пн,Вт,Ср,Чт,Пт,Сб,Нд"
-              days-long="понеділок,вівторок,середа,четвер,п'ятниця,субота,неділя"
-              primary-color="#CCD74D"
-              secondary-color="#2D7AFF"
-              border
-              border-radius="0"
-              timezone="Europe/Kyiv"
-            ></date-picker>
-          </div>
           <div class="form-row">
             <mui-text
               width="80%"
@@ -249,24 +209,6 @@
               label="Add a new task"
               variant="standard"
             ></mui-text>
-            <mui-text-lit
-              width="80%"
-              height="50px"
-              label="Add a new task"
-              variant="standard"
-            ></mui-text-lit>
-            <mui-text-lit
-              width="80%"
-              height="50px"
-              label="Add a new task"
-              variant="outlined"
-            ></mui-text-lit>
-            <mui-text-lit
-              width="80%"
-              height="50px"
-              label="Add a new task"
-              variant="filled"
-            ></mui-text-lit>
             <button>Add todo</button>
           </div>
 
