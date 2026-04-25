@@ -40,5 +40,10 @@ func (h *handler) GetRoutes() []shared.Route {
 			Path:   "/update_todo",
 			Func:   shared.Build(Index, p.UpdateTodo, p.PatchTodo),
 		},
+		{
+			Method: http.MethodGet,
+			Path:   "/get_categories_count",
+			Func:   shared.BuildWithoutRequest(Categories, p.GetCategoriesCount),
+		},
 	}
 }

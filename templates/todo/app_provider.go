@@ -37,6 +37,7 @@ func GetCurrentModel() TodoModel {
 
 type Provider interface {
 	GetTodoProvider() TodoModel
+	GetCategoriesCount() CategoriesCountModel
 	AddTodo(todo Todo) TodoModel
 	UpdateTodo(todo Todo) TodoModel
 	PostTodo(r *http.Request) Todo
@@ -97,4 +98,25 @@ func (p *dummy) UpdateTodo(todo Todo) TodoModel {
 		}
 	}
 	return GetCurrentModel()
+}
+
+func (p *dummy) GetCategoriesCount() CategoriesCountModel {
+	countMap := make(map[string]int)
+
+	for _, todo := range todos {
+		countMap[todo.Category]++
+	}
+
+	var categoriesWithCount []CategoryWithCount
+
+	for _, category := range categoryOptions {
+		categoriesWithCount = append(categoriesWithCount, CategoryWithCount{
+			Category: category,
+			Count:    countMap[category],
+		})
+	}
+
+	return CategoriesCountModel{
+		CategoriesWithCount: categoriesWithCount,
+	}
 }

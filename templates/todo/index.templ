@@ -9,6 +9,8 @@ templ Index(data TodoModel) {
 			<meta charset="UTF-8" />
 			<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 			<title>HTMX Todo App</title>
+			 <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.10/dist/htmx.min.js" 
+          integrity="sha384-H5SrcfygHmAuTDZphMHqBJLc3FhssKjG7w/CeCpFReSfwBWDTKpkzPP8c+cLsK+V" crossorigin="anonymous"></script>
 			<style>
 				* {
 					box-sizing: border-box;
@@ -216,26 +218,9 @@ templ Index(data TodoModel) {
 				<div class="sidebar">
 					<div class="task-card">
 						<h2>Tasks</h2>
-						<span
-						></span>
 					</div>
+					<div hx-get="get_categories_count" hx-trigger="load" hx-swap="outerHTML" hx-target="this">
 
-					<div
-					>
-						for _, category := range data.CategoryOptions {
-							<a 
-								
-							>
-								<div class="category">
-									<span>{ category }</span>
-									<span 
-									class="category-badge" 
-									
-									>
-									</span>
-								</div>
-							</a>
-						}
 					</div>
 				</div>
 
@@ -248,7 +233,8 @@ templ Index(data TodoModel) {
 					<input name="todo" type="text" placeholder="Type a task" />
             <button>Add todo</button>
 
-						<div class="select-row">
+						<div class="select-row"
+						>
 							<select name="category">
 								<option value="">--- Select a category ---</option>
 								for _, category := range data.CategoryOptions {
@@ -347,4 +333,24 @@ script toggleEdit(id string, show bool) {
         viewDiv.style.display = 'flex';
         editForm.style.display = 'none';
     }
+}
+
+templ Categories (categories CategoriesCountModel) {
+	<div
+	>
+		for _, category := range categories.CategoriesWithCount {
+			<a 
+				
+			>
+				<div class="category">
+					<span>{ category.Category }</span>
+					<span 
+					class="category-badge" 
+					>
+						{ category.Count }
+					</span>
+				</div>
+			</a>
+		}
+	</div>
 }

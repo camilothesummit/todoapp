@@ -11,3 +11,12 @@ type TodoModel struct {
 	Todos []Todo
 	CategoryOptions []string
 }
+
+type CategoriesCountModel struct {
+	CategoriesWithCount []CategoryWithCount
+}
+
+type CategoryWithCount struct {
+	Category string
+	Count int
+}
