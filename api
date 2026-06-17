@@ -1,4 +1,3 @@
-package main
 
 import (
 	"database/sql"
@@ -9,11 +8,12 @@ import (
 	"strings"
 	"time"
 
+	"api/templates"
+
 	_ "github.com/go-sql-driver/mysql"
 )
 
 var db *sql.DB
-var tmpl *template.Template
 
 func main() {
 	var err error
@@ -31,11 +31,6 @@ func main() {
 	}
 
 	fmt.Println("✅ Conectado a MySQL")
-
-	tmpl, err = template.ParseGlob("./static/*.html")
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	http.HandleFunc("/", homeHandler)
 
@@ -63,13 +58,8 @@ func main() {
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	data := struct {
-		Title               string
-		SidebarTaskCardClass string
-		ExtraFields         []template.HTML
-		CategoryOptions     []string
-	}{
-		Title:               "HTMX Todo App",
+	data := templates.PageData{
+		Title:                "HTMX Todo App",
 		SidebarTaskCardClass: "task-card",
 		ExtraFields: []template.HTML{
 			template.HTML(`<input type="hidden" name="type" value="default">`),
@@ -82,25 +72,13 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	var buf strings.Builder
-
-	err := tmpl.ExecuteTemplate(&buf, "index.html", data)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Write([]byte(buf.String()))
+	w.Header().Set("Content-Type", "text/html")
+	templates.Index(data).Render(r.Context(), w)
 }
 
 func gymHandler(w http.ResponseWriter, r *http.Request) {
-	data := struct {
-		Title string
-		SidebarTaskCardClass string
-		ExtraFields []template.HTML
-		CategoryOptions []string
-	}{
-		Title: "Gym",
+	data := templates.PageData{
+		Title:                "Gym",
 		SidebarTaskCardClass: "task-card",
 		ExtraFields: []template.HTML{
 			`<div class="form-row">
@@ -123,20 +101,13 @@ func gymHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	err := tmpl.ExecuteTemplate(w, "index.html", data)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	w.Header().Set("Content-Type", "text/html")
+	templates.Index(data).Render(r.Context(), w)
 }
 
 func pinkHandler(w http.ResponseWriter, r *http.Request) {
-	data := struct {
-		Title string
-		SidebarTaskCardClass string
-		ExtraFields []template.HTML
-		CategoryOptions []string
-	}{
-		Title: "Pink",
+	data := templates.PageData{
+		Title:                "Pink",
 		SidebarTaskCardClass: "pink-card",
 		ExtraFields: []template.HTML{
 			`<div class="form-row">
@@ -152,10 +123,9 @@ func pinkHandler(w http.ResponseWriter, r *http.Request) {
 			"Personal",
 		},
 	}
-	err := tmpl.ExecuteTemplate(w, "index.html", data)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	
+	w.Header().Set("Content-Type", "text/html")
+	templates.Index(data).Render(r.Context(), w)
 }
 
 func addTodo(w http.ResponseWriter, r *http.Request) {
@@ -462,24 +432,7 @@ func getCategories(w http.ResponseWriter, r *http.Request) {
 		}
 
 		html .WriteString(fmt.Sprintf(`
-		<a 
-			hx-get="/get_todos" 
-			hx-vals='{"category": "%s"}'
-			hx-target="#todo-list"
-		>
-			<div class="category">
-				<span>%s</span>
-				<span 
-				class="category-badge" 
-				hx-get="/get_category_incomplete_count" 
-				hx-vals='{"category": "%s"}'
-				hx-trigger="load, stats_changed from:body"
-				hx-target="this"
-				hx-include="#todoForm"
-				>
-				</span>
-			</div>
-		</a>
+		
 		`, category, category, category))
 	}
 	w.Header().Set("Content-Type", "text/html")

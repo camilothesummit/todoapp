@@ -1,0 +1,33 @@
+# Build artifacts
+todoapp
+dist/
+bin/
+
+# Generated files
+*_templ.go
+templates/*_templ.go
+backend/*_templ.go
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.iml
+
+# Environment
+.env
+.env.local
+
+# Node modules
+node_modules/
+package-lock.json
+yarn.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+.go/
+vendor/
